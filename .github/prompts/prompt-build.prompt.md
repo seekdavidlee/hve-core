@@ -7,59 +7,57 @@ maturity: stable
 
 # Prompt Build
 
+This prompt delegates to the *prompt-builder* chatmode, which provides the phase-based protocol for authoring prompt engineering artifacts. The steps below prepare inputs and track progress while the mode handles research, authoring, and validation phases.
+
 ## Inputs
 
-* ${input:file}: (Optional) Target prompt file path. Defaults to the current open file or attached file.
+* ${input:file}: (Optional) Target file for the existing or new prompt instructions file. Defaults to the current open file or attached file.
 * ${input:requirements}: (Optional) Additional requirements or context from the user request.
 
 ## Required Steps
 
-### Step 1: Interpret the user request
+* Analyze the user request and conversation context to determine the operation and requirements.
+* Avoid reading prompt instructions files, relying on subagents to read and modify them unless validation or required instructions call for direct access.
+* Leverage subagents for all research including reading and discovering related files and folders.
+* Use the runSubagent tool when dispatching subagents. When the tool is unavailable, follow the subagent instructions directly or stop if the task requires runSubagent.
+* Follow all of the below steps and follow all instructions from the Required Phases section.
 
-Analyze the user request and conversation context to determine the operation.
+### Step 1: Interpret User Request
 
-Identify the target file:
+* Work with the user as needed to interpret their request accurately.
+* Update the conversation and keep track of requirements as they're identified.
 
-* Use `${input:file}` when provided.
-* Otherwise use the currently open editor file or attached files.
-* When no target file can be determined, request clarification from the user.
-* When creating a new file, use the file type conventions in the prompt-builder instructions to determine the appropriate path.
+When no explicit requirements are provided, infer the operation:
 
-Classify the operation:
+* When referencing an existing prompt instructions file, refactor, clean up, and improve all instructions in that file.
+* When referencing any other file, search for related prompt instructions files and update them with conventions, standards, and examples identified from the referenced and related files.
+* When no related prompt instructions file is found, build a new prompt instructions file based on the referenced and related files.
 
-* *Create*: Target file does not exist. Gather requirements and build from scratch.
-* *Modify*: Target file exists. Update content, restructure, or fix issues based on user requirements.
+### Step 2: Iterate the Protocol
 
-Gather context:
+Pass all identified requirements to the prompt-builder mode's protocol phases. Continue iterating until:
 
-* When the target file exists and is not a prompt or instructions file, read it directly.
-* When the target file is a prompt or instructions file, delegate reading to a subagent via runSubagent. If runSubagent is unavailable, pause and request confirmation to proceed or enable it before continuing.
-* For subagent reads of prompt or instructions files, ask for a response that includes the file path, a concise summary of key sections, and any constraints.
-* Read referenced files, excluding prompt files and instructions. Only subagents via runSubagent read prompt files or instructions.
-* Note external documentation or SDKs mentioned in the user request.
-* Treat ${input:requirements} as additional context when provided.
+1. All requirements are addressed.
+2. Prompt Quality Criteria from the mode's instructions pass for all related prompt instructions files.
 
-If requirements are unclear, conflicting, or incomplete, request clarification before continuing.
+When dispatching subagents for research or editing tasks:
 
-Summarize the interpretation before proceeding with the target file path, operation classification, and context sources.
+* Use the runSubagent tool to dispatch each subagent. When it is unavailable, follow the subagent instructions directly or stop if the task requires runSubagent.
+* Specify which instructions files or chatmodes the subagent follows.
+* Provide a structured response format or target file for subagent output.
+* Allow subagents to respond with clarifying questions rather than guessing.
 
-### Step 2: Execute the build workflow
+### Step 3: Report Outcomes
 
-* Use the Required Steps protocol as the execution basis.
-* Apply prompt-builder.instructions.md for file type structure, protocol patterns, and writing style.
-* Follow markdown conventions for formatting, while using prompt frontmatter requirements for prompt files instead of generic markdown frontmatter guidance.
-* Build or update the target file using the correct file type structure, including required frontmatter, Inputs section when variables exist, protocol sections, and the activation line.
-* Update existing instructions to satisfy the Prompt Quality Criteria checklist across the entire file.
-* Keep prompt or instructions file reads and subagent work confined to runSubagent.
-* When runSubagent is unavailable, pause and request confirmation to proceed, then continue after confirmation. Use ${input:requirements} as additional context when present.
+After protocol completion, summarize the session:
 
-### Step 3: Summarize outcomes
+* Files created or modified with paths.
+* Requirements addressed and any deferred items.
+* Validation results from Prompt Quality Criteria.
 
-Report outcomes after completing the protocol:
+## Required Phases
 
-* Target file path and operation completed.
-* Key changes applied.
-* Validation results against the Prompt Quality Criteria checklist and any unresolved findings.
+* Follow the prompt-builder chatmode Required Phases in order. Use the chatmode to manage phase transitions and validation criteria.
 
 ---
 
