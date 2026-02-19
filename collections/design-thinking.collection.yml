@@ -7,6 +7,10 @@ tags:
   - methodology
   - ux
 items:
+  # Agents
+  - path: .github/agents/design-thinking/dt-coach.agent.md
+    kind: agent
+
   # Instructions
   - path: .github/instructions/design-thinking/dt-coaching-identity.instructions.md
     kind: instruction

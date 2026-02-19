@@ -16,6 +16,8 @@ items:
   kind: agent
 - path: .github/agents/data-science/test-streamlit-dashboard.agent.md
   kind: agent
+- path: .github/agents/design-thinking/dt-coach.agent.md
+  kind: agent
 - path: .github/agents/github/github-backlog-manager.agent.md
   kind: agent
   maturity: experimental
