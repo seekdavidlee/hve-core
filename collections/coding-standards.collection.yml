@@ -25,6 +25,8 @@ items:
     kind: agent
   - path: .github/agents/pr-review.agent.md
     kind: agent
+  - path: .github/agents/functional-code-review.agent.md
+    kind: agent
   # Prompt Engineering agents
   - path: .github/agents/prompt-builder.agent.md
     kind: agent
