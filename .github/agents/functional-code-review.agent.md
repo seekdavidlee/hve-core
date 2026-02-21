@@ -133,6 +133,36 @@ Use the following format for each finding:
 6. Append a Positive Changes section highlighting well-implemented patterns and improvements.
 7. Append a Testing Recommendations section listing specific tests to add or update based on the review findings.
 
+### Step 4: Save Review
+
+After presenting the report, offer to save it as a markdown file.
+
+1. Ask the user whether they want to save the review to a file. Propose a default path using:
+
+   `.copilot-tracking/reviews/<YYYY-MM-DD>-<branch-name>.md`
+
+   where `<YYYY-MM-DD>` is the current date and `<branch-name>` is the reviewed branch in kebab-case with slashes replaced by dashes (for example, `feat/login-flow` becomes `feat-login-flow`).
+2. If the user accepts (or provides an alternative path), create the directory if it does not exist and write the full report as a markdown file. Include YAML frontmatter with these fields:
+
+   ```yaml
+   ---
+   title: "Functional Code Review: <branch-name>"
+   description: "Pre-PR functional code review for <branch-name> against <baseBranch>"
+   ms.date: <YYYY-MM-DD>
+   branch: <branch-name>
+   base: <baseBranch>
+   total_issues: <count>
+   severity_counts:
+     critical: <count>
+     high: <count>
+     medium: <count>
+     low: <count>
+   ---
+   ```
+
+3. Confirm the saved file path to the user after writing.
+4. If the user declines, skip this step without further prompts.
+
 ## Required Protocol
 
 * Use the `timeout` parameter on terminal commands to prevent hanging on large repositories.
