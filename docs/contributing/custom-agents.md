@@ -92,12 +92,18 @@ All agents **MUST** target the **latest available models** from **Anthropic and 
 
 ### Location
 
-All agent files **MUST** be placed in:
+Agent files are typically organized in a collection subdirectory by convention:
 
 ```text
-.github/agents/
-└── your-agent-name.agent.md
+.github/agents/{collection-id}/
+├── your-agent-name.agent.md
+└── subagents/
+    └── your-subagent-name.agent.md
 ```
+
+> [!NOTE]
+> Collections can reference artifacts from any subfolder. The `path:` field in collection YAML files
+> accepts any valid repo-relative path regardless of the artifact's parent directory.
 
 ### Naming Convention
 
@@ -213,7 +219,7 @@ Agent files **MUST**:
   ```yaml
   handoffs:
     - label: "📋 Create Plan"
-      agent: task-planner
+      agent: Task Planner
       prompt: /task-plan
       send: true
   ```
@@ -233,8 +239,8 @@ description: 'Validates and reviews contributed agents, prompts, and instruction
 tools: ['codebase', 'search', 'problems', 'editFiles', 'changes', 'usages']
 disable-model-invocation: true
 agents:
-  - prompt-tester
-  - prompt-evaluator
+  - Prompt Tester
+  - Prompt Evaluator
 ---
 ```
 
@@ -248,7 +254,8 @@ After creating your agent file, add an `items[]` entry to each target collection
 
 ```yaml
 items:
-  - path: .github/agents/my-new-agent.agent.md
+  # path can reference artifacts from any subfolder
+  - path: .github/agents/{collection-id}/my-new-agent.agent.md
   kind: agent
   maturity: stable
 ```
@@ -257,14 +264,15 @@ items:
 
 Choose collections based on who benefits most from your agent:
 
-| Agent Type           | Recommended Collections                   |
-|----------------------|-------------------------------------------|
-| Task workflow agents | `hve-core-all`, `rpi`                     |
-| Architecture agents  | `hve-core-all`, `project-planning`        |
-| Documentation agents | `hve-core-all`, `prompt-engineering`      |
-| Data science agents  | `hve-core-all`, `data-science`            |
-| ADO/work item agents | `hve-core-all`, `ado`, `project-planning` |
-| Code review agents   | `hve-core-all`, `coding-standards`        |
+| Agent Type             | Recommended Collections                   |
+|------------------------|-------------------------------------------|
+| Task workflow agents   | `hve-core-all`, `hve-core`                |
+| Architecture agents    | `hve-core-all`, `project-planning`        |
+| Documentation agents   | `hve-core-all`, `hve-core`                |
+| Data science agents    | `hve-core-all`, `data-science`            |
+| Design thinking agents | `hve-core-all`, `design-thinking`         |
+| ADO/work item agents   | `hve-core-all`, `ado`, `project-planning` |
+| Code review agents     | `hve-core-all`, `hve-core`                |
 
 ### Declaring Agent Dependencies
 
@@ -522,7 +530,7 @@ All checks **MUST** pass before merge.
 
 ## Getting Help
 
-See [AI Artifacts Common Standards - Getting Help](ai-artifacts-common.md#getting-help) for support resources. For agent-specific assistance, review existing examples in `.github/agents/`.
+See [AI Artifacts Common Standards - Getting Help](ai-artifacts-common.md#getting-help) for support resources. For agent-specific assistance, review existing examples in `.github/agents/{collection-id}/` (the conventional location for agent files).
 
 ---
 

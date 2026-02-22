@@ -12,32 +12,178 @@
 # Pure Functions (no file system side effects)
 # ---------------------------------------------------------------------------
 
+function Test-DeprecatedPath {
+    <#
+    .SYNOPSIS
+    Checks whether a file path contains a deprecated directory segment.
+
+    .DESCRIPTION
+    Returns true when the path contains a /deprecated/ or \deprecated\ segment,
+    indicating the artifact resides in a deprecated directory tree.
+
+    .PARAMETER Path
+    File path to check (absolute or relative, any slash style).
+
+    .OUTPUTS
+    [bool] True when the path contains a deprecated segment.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path
+    )
+
+    return ($Path -match '[/\\]deprecated[/\\]')
+}
+
+function Test-HveCoreRepoSpecificPath {
+    <#
+    .SYNOPSIS
+    Checks whether a type-relative path is a root-level repo-specific artifact.
+
+    .DESCRIPTION
+    Returns true when the type-relative path has no subdirectory component,
+    indicating it is a root-level repo-specific artifact not intended for
+    distribution. Collection-scoped artifacts reside in subdirectories.
+
+    .PARAMETER RelativePath
+    Type-relative path (relative to the agents/, prompts/, instructions/, or skills/ directory).
+
+    .OUTPUTS
+    [bool] True when the path is repo-specific.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$RelativePath
+    )
+
+    return ($RelativePath -notlike '*/*')
+}
+
+function Test-HveCoreRepoRelativePath {
+    <#
+    .SYNOPSIS
+    Checks whether a repo-relative path is a root-level repo-specific artifact.
+
+    .DESCRIPTION
+    Returns true when the repo-relative path is directly under a .github type
+    directory (agents, instructions, prompts, skills) with no subdirectory,
+    indicating it is a root-level repo-specific artifact not intended for distribution.
+
+    .PARAMETER Path
+    Repo-relative path (e.g., .github/instructions/workflows.instructions.md).
+
+    .OUTPUTS
+    [bool] True when the path is a root-level repo-specific artifact.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$Path
+    )
+
+    return ($Path -match '^\.github/(agents|instructions|prompts|skills)/[^/]+$')
+}
+
 function Get-CollectionManifest {
     <#
     .SYNOPSIS
-    Reads and parses a .collection.yml file.
+    Loads a collection manifest from a YAML or JSON file.
 
     .DESCRIPTION
-    Loads a collection manifest YAML file and returns its parsed content
-    as a hashtable using ConvertFrom-Yaml.
+    Reads and parses a collection manifest file that defines collection-based
+    artifact filtering rules. Supports both YAML (.yml/.yaml) and JSON (.json)
+    formats.
 
     .PARAMETER CollectionPath
-    Absolute or relative path to the .collection.yml file.
+    Path to the collection manifest file (YAML or JSON).
 
     .OUTPUTS
-    [hashtable] Parsed collection data with id, name, description, items, etc.
+    [hashtable] Parsed collection manifest with id, name, displayName, description, items, and optional include/exclude.
     #>
     [CmdletBinding()]
     [OutputType([hashtable])]
     param(
         [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
         [string]$CollectionPath
     )
 
-    $content = Get-Content -Path $CollectionPath -Raw
-    $manifest = ConvertFrom-Yaml -Yaml $content
+    if (-not (Test-Path $CollectionPath)) {
+        throw "Collection manifest not found: $CollectionPath"
+    }
 
-    return $manifest
+    $extension = [System.IO.Path]::GetExtension($CollectionPath).ToLowerInvariant()
+    if ($extension -in @('.yml', '.yaml')) {
+        $content = Get-Content -Path $CollectionPath -Raw
+        return ConvertFrom-Yaml -Yaml $content
+    }
+
+    $content = Get-Content -Path $CollectionPath -Raw
+    return $content | ConvertFrom-Json -AsHashtable
+}
+
+function Get-CollectionArtifactKey {
+    <#
+    .SYNOPSIS
+        Extracts a unique key from an artifact path based on its kind.
+
+    .DESCRIPTION
+        Produces the same key that extension packaging uses for deduplication.
+        Agents and prompts use the filename only; instructions use the
+        type-relative path; skills use the directory name.
+
+    .PARAMETER Kind
+        The artifact kind (agent, prompt, instruction, skill).
+
+    .PARAMETER Path
+        The repo-relative artifact path.
+
+    .OUTPUTS
+        [string] The artifact key.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Kind,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    switch ($Kind) {
+        'agent' {
+            return ([System.IO.Path]::GetFileName($Path) -replace '\.agent\.md$', '')
+        }
+        'prompt' {
+            return ([System.IO.Path]::GetFileName($Path) -replace '\.prompt\.md$', '')
+        }
+        'instruction' {
+            return ($Path -replace '^\.github/instructions/', '' -replace '\.instructions\.md$', '')
+        }
+        'skill' {
+            return [System.IO.Path]::GetFileName($Path.TrimEnd('/'))
+        }
+        default {
+            if ($Path -match "\.$([regex]::Escape($Kind))\.md$") {
+                return ([System.IO.Path]::GetFileName($Path) -replace "\.$([regex]::Escape($Kind))\.md$", '')
+            }
+
+            if ($Path -like '*.md') {
+                return [System.IO.Path]::GetFileNameWithoutExtension($Path)
+            }
+
+            return [System.IO.Path]::GetFileName($Path)
+        }
+    }
 }
 
 function Get-ArtifactFrontmatter {
@@ -179,7 +325,7 @@ function Get-ArtifactFiles {
 
     $items = @()
 
-    # Prompt-engineering artifacts discovered by .<kind>.md suffix under .github/
+    # AI artifacts discovered by .<kind>.md suffix under .github/
     # Keep explicit suffix mapping only where naming differs from manifest kind values.
     $gitHubDir = Join-Path -Path $RepoRoot -ChildPath '.github'
     if (Test-Path -Path $gitHubDir) {
@@ -197,11 +343,12 @@ function Get-ArtifactFiles {
             $kind = if ($suffixToKind.ContainsKey($suffix)) { $suffixToKind[$suffix] } else { $suffix }
             $relativePath = [System.IO.Path]::GetRelativePath($RepoRoot, $file.FullName) -replace '\\', '/'
 
-            # Exclude repo-specific artifacts under .github/**/hve-core/
-            if ($relativePath -match '^\.github/.*/hve-core/') {
+            if (Test-HveCoreRepoRelativePath -Path $relativePath) {
                 continue
             }
-
+            if (Test-DeprecatedPath -Path $relativePath) {
+                continue
+            }
             $items += @{ path = $relativePath; kind = $kind }
         }
     }
@@ -209,13 +356,19 @@ function Get-ArtifactFiles {
     # Skills (directories containing SKILL.md)
     $skillsDir = Join-Path -Path $RepoRoot -ChildPath '.github/skills'
     if (Test-Path -Path $skillsDir) {
-        $skillDirs = Get-ChildItem -Path $skillsDir -Directory
-        foreach ($dir in $skillDirs) {
-            $skillFile = Join-Path -Path $dir.FullName -ChildPath 'SKILL.md'
-            if (Test-Path -Path $skillFile) {
-                $relativePath = [System.IO.Path]::GetRelativePath($RepoRoot, $dir.FullName) -replace '\\', '/'
-                $items += @{ path = $relativePath; kind = 'skill' }
+        $skillMdFiles = Get-ChildItem -Path $skillsDir -Filter 'SKILL.md' -File -Recurse
+        foreach ($skillFile in $skillMdFiles) {
+            $dir = $skillFile.Directory
+            $relativePath = [System.IO.Path]::GetRelativePath($RepoRoot, $dir.FullName) -replace '\\', '/'
+
+            if (Test-DeprecatedPath -Path $relativePath) {
+                continue
             }
+            if (Test-HveCoreRepoRelativePath -Path $relativePath) {
+                continue
+            }
+
+            $items += @{ path = $relativePath; kind = 'skill' }
         }
     }
 
@@ -287,6 +440,9 @@ function Update-HveCoreAllCollection {
 
     # Discover all artifacts
     $allItems = Get-ArtifactFiles -RepoRoot $RepoRoot
+
+    # Exclude deprecated items by path (independent of maturity metadata)
+    $allItems = @($allItems | Where-Object { -not (Test-DeprecatedPath -Path $_.path) })
 
     # Filter deprecated based on existing collection item maturity metadata
     $existingItemMaturities = @{}
@@ -360,13 +516,20 @@ function Update-HveCoreAllCollection {
     }
     else {
         # Rebuild manifest preserving metadata
+        $displayOrdered = [ordered]@{}
+        if ($existing.display.Contains('featured')) {
+            $displayOrdered['featured'] = $existing.display['featured']
+        }
+        if ($existing.display.Contains('ordering')) {
+            $displayOrdered['ordering'] = $existing.display['ordering']
+        }
         $manifest = [ordered]@{
             id          = $existing.id
             name        = $existing.name
             description = $existing.description
             tags        = $existing.tags
             items       = $newItems
-            display     = $existing.display
+            display     = $displayOrdered
         }
 
         $yaml = ConvertTo-Yaml -Data $manifest
@@ -516,6 +679,10 @@ function New-PluginReadmeContent {
     Array of processed item objects. Each object must have Name, Description,
     and Kind properties.
 
+    .PARAMETER Maturity
+        Optional collection-level maturity string. When 'experimental', an
+        experimental notice is injected after the description.
+
     .OUTPUTS
     [string] Complete README markdown content.
     #>
@@ -527,7 +694,12 @@ function New-PluginReadmeContent {
 
         [Parameter(Mandatory = $true)]
         [AllowEmptyCollection()]
-        [array]$Items
+        [array]$Items,
+
+        [Parameter(Mandatory = $false)]
+        [AllowNull()]
+        [AllowEmptyString()]
+        [string]$Maturity
     )
 
     $sb = [System.Text.StringBuilder]::new()
@@ -535,6 +707,14 @@ function New-PluginReadmeContent {
     [void]$sb.AppendLine("# $($Collection.name)")
     [void]$sb.AppendLine()
     [void]$sb.AppendLine($Collection.description)
+
+    # Inject experimental notice when collection is experimental
+    $effectiveMaturity = if ([string]::IsNullOrWhiteSpace($Maturity)) { 'stable' } else { $Maturity }
+    if ($effectiveMaturity -eq 'experimental') {
+        [void]$sb.AppendLine()
+        [void]$sb.AppendLine("> **`u{26A0}`u{FE0F} Experimental** `u{2014} This collection is experimental. Contents and behavior may change or be removed without notice.")
+    }
+
     [void]$sb.AppendLine()
     [void]$sb.AppendLine('## Install')
     [void]$sb.AppendLine()
@@ -629,7 +809,7 @@ function New-MarketplaceManifestContent {
     foreach ($plugin in $Plugins) {
         $pluginEntries += [ordered]@{
             name        = $plugin.name
-            source      = "./plugins/$($plugin.name)"
+            source      = $plugin.name
             description = $plugin.description
             version     = $plugin.version
         }
@@ -761,21 +941,59 @@ function New-GenerateResult {
 # I/O Functions (file system operations)
 # ---------------------------------------------------------------------------
 
-function New-RelativeSymlink {
+function Test-SymlinkCapability {
     <#
     .SYNOPSIS
-    Creates a relative symlink from destination to source.
+    Probes whether the current process can create symbolic links.
 
     .DESCRIPTION
-    Calculates the relative path from the directory containing the destination
-    to the source path, then creates a symbolic link at the destination
-    pointing to that relative path.
+    Creates a temporary file and attempts to symlink to it. Returns $true
+    when the OS and process privileges allow symlink creation, $false
+    otherwise. The probe directory is cleaned up unconditionally.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param()
+
+    $tempDir = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "hve-symlink-probe-$PID"
+    $targetFile = Join-Path -Path $tempDir -ChildPath 'target.txt'
+    $linkFile = Join-Path -Path $tempDir -ChildPath 'link.txt'
+    try {
+        New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+        Set-Content -Path $targetFile -Value 'probe' -NoNewline
+        New-Item -ItemType SymbolicLink -Path $linkFile -Target $targetFile -ErrorAction Stop | Out-Null
+        return $true
+    }
+    catch {
+        return $false
+    }
+    finally {
+        if (Test-Path -Path $tempDir) {
+            Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function New-PluginLink {
+    <#
+    .SYNOPSIS
+    Links a source path into a plugin destination via symlink or text stub.
+
+    .DESCRIPTION
+    When SymlinkCapable is set, creates a relative symbolic link from
+    DestinationPath to SourcePath. Otherwise writes a text stub file
+    containing the relative path, matching the format git produces when
+    core.symlinks is false. Text stubs keep git status clean on Windows
+    without Developer Mode or elevated privileges.
 
     .PARAMETER SourcePath
-    Absolute path to the symlink target (the real file or directory).
+    Absolute path to the real file or directory.
 
     .PARAMETER DestinationPath
-    Absolute path where the symlink will be created.
+    Absolute path where the link or text stub will be created.
+
+    .PARAMETER SymlinkCapable
+    When set, create a symbolic link; otherwise write a text stub.
     #>
     [CmdletBinding()]
     param(
@@ -783,17 +1001,25 @@ function New-RelativeSymlink {
         [string]$SourcePath,
 
         [Parameter(Mandatory = $true)]
-        [string]$DestinationPath
+        [string]$DestinationPath,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$SymlinkCapable
     )
 
     $destinationDir = Split-Path -Parent $DestinationPath
-    $relativePath = [System.IO.Path]::GetRelativePath($destinationDir, $SourcePath)
-
     if (-not (Test-Path -Path $destinationDir)) {
         New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
     }
 
-    New-Item -ItemType SymbolicLink -Path $DestinationPath -Value $relativePath -Force | Out-Null
+    $relativePath = [System.IO.Path]::GetRelativePath($destinationDir, $SourcePath) -replace '\\', '/'
+
+    if ($SymlinkCapable) {
+        New-Item -ItemType SymbolicLink -Path $DestinationPath -Value $relativePath -Force | Out-Null
+    }
+    else {
+        [System.IO.File]::WriteAllText($DestinationPath, $relativePath)
+    }
 }
 
 function Write-PluginDirectory {
@@ -804,8 +1030,8 @@ function Write-PluginDirectory {
     .DESCRIPTION
     Builds the full plugin layout under the specified plugins directory,
     including subdirectories for agents, commands, instructions, and skills.
-    Each item is symlinked from the plugin directory back to its source in
-    the repository. Generates plugin.json and README.md.
+    Each item is linked or copied from the plugin directory back to its
+    source in the repository. Generates plugin.json and README.md.
 
     .PARAMETER Collection
     Parsed collection manifest hashtable with id, name, description, and items.
@@ -819,8 +1045,15 @@ function Write-PluginDirectory {
     .PARAMETER Version
     Semantic version string from the repository package.json.
 
+    .PARAMETER Maturity
+        Optional collection-level maturity string. Forwarded to
+        New-PluginReadmeContent for experimental notice injection.
+
     .PARAMETER DryRun
     When specified, logs actions without creating files or directories.
+
+    .PARAMETER SymlinkCapable
+    When specified, creates symbolic links; otherwise copies files.
 
     .OUTPUTS
     [hashtable] Result with Success, AgentCount, CommandCount, InstructionCount,
@@ -842,7 +1075,15 @@ function Write-PluginDirectory {
         [string]$Version,
 
         [Parameter(Mandatory = $false)]
-        [switch]$DryRun
+        [AllowNull()]
+        [AllowEmptyString()]
+        [string]$Maturity,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$DryRun,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$SymlinkCapable
     )
 
     $collectionId = $Collection.id
@@ -901,17 +1142,16 @@ function Write-PluginDirectory {
         }
 
         if ($DryRun) {
-            Write-Verbose "DryRun: Would create symlink $destPath -> $sourcePath"
+            Write-Verbose "DryRun: Would create link $destPath -> $sourcePath"
             continue
         }
 
-        New-RelativeSymlink -SourcePath $sourcePath -DestinationPath $destPath
+        New-PluginLink -SourcePath $sourcePath -DestinationPath $destPath -SymlinkCapable:$SymlinkCapable
     }
 
-    # Symlink shared resource directories (unconditional, all plugins)
+    # Link shared resource directories (unconditional, all plugins)
     $sharedDirs = @(
         @{ Source = 'docs/templates';    Destination = 'docs/templates' }
-        @{ Source = 'scripts/dev-tools'; Destination = 'scripts/dev-tools' }
         @{ Source = 'scripts/lib';       Destination = 'scripts/lib' }
     )
 
@@ -925,11 +1165,11 @@ function Write-PluginDirectory {
         }
 
         if ($DryRun) {
-            Write-Verbose "DryRun: Would create shared directory symlink $destPath -> $sourcePath"
+            Write-Verbose "DryRun: Would create shared directory link $destPath -> $sourcePath"
             continue
         }
 
-        New-RelativeSymlink -SourcePath $sourcePath -DestinationPath $destPath
+        New-PluginLink -SourcePath $sourcePath -DestinationPath $destPath -SymlinkCapable:$SymlinkCapable
     }
 
     # Generate plugin.json
@@ -949,7 +1189,7 @@ function Write-PluginDirectory {
 
     # Generate README.md
     $readmePath = Join-Path -Path $pluginRoot -ChildPath 'README.md'
-    $readmeContent = New-PluginReadmeContent -Collection $Collection -Items $readmeItems
+    $readmeContent = New-PluginReadmeContent -Collection $Collection -Items $readmeItems -Maturity $Maturity
 
     if ($DryRun) {
         Write-Verbose "DryRun: Would write README.md at $readmePath"
@@ -967,10 +1207,140 @@ function Write-PluginDirectory {
     }
 }
 
+function Repair-PluginSymlinkIndex {
+    <#
+    .SYNOPSIS
+    Fixes git index modes for text stub files so they register as symlinks.
+
+    .DESCRIPTION
+    On systems where symlinks are unavailable (Windows without Developer Mode),
+    New-PluginLink writes text stubs containing relative paths. Git stages
+    these as mode 100644 (regular file). This function re-indexes each text
+    stub as mode 120000 (symlink) so that Linux/macOS checkouts materialize
+    real symbolic links.
+
+    .PARAMETER PluginsDir
+    Absolute path to the plugins output directory.
+
+    .PARAMETER RepoRoot
+    Absolute path to the repository root (git working tree).
+
+    .PARAMETER DryRun
+    When specified, logs what would be fixed without modifying the index.
+
+    .OUTPUTS
+    [int] Number of index entries corrected.
+    #>
+    [CmdletBinding()]
+    [OutputType([int])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$PluginsDir,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$RepoRoot,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$DryRun
+    )
+
+    if (-not (Test-Path -Path $PluginsDir)) {
+        return 0
+    }
+
+    # Build a set of paths already tracked in the git index under plugins/.
+    # --index-info silently ignores untracked paths (PowerShell pipe encoding
+    # issue), so new files must be added individually via --cacheinfo.
+    $trackedPaths = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase
+    )
+    $pluginsRel = [System.IO.Path]::GetRelativePath($RepoRoot, $PluginsDir) -replace '\\', '/'
+    $lsOutput = git ls-files -- $pluginsRel 2>$null
+    if ($lsOutput) {
+        foreach ($p in @($lsOutput)) { [void]$trackedPaths.Add($p) }
+    }
+
+    $fixedCount = 0
+    $newEntries = [System.Collections.Generic.List[PSCustomObject]]::new()
+    $batchEntries = [System.Collections.Generic.List[string]]::new()
+    $files = Get-ChildItem -Path $PluginsDir -File -Recurse
+
+    foreach ($file in $files) {
+        # Text stubs are small files whose content is a relative path with
+        # forward slashes, no line breaks, starting with ../
+        if ($file.Length -gt 500) {
+            continue
+        }
+
+        $content = [System.IO.File]::ReadAllText($file.FullName)
+
+        if ($content -notmatch '^\.\./') {
+            continue
+        }
+        if ($content.Contains("`n") -or $content.Contains("`r")) {
+            continue
+        }
+
+        $repoRelPath = [System.IO.Path]::GetRelativePath($RepoRoot, $file.FullName) -replace '\\', '/'
+
+        if ($DryRun) {
+            Write-Verbose "DryRun: Would fix index mode for $repoRelPath"
+            $fixedCount++
+            continue
+        }
+
+        $hashOutput = git hash-object -w -- $file.FullName 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Failed to hash-object for $repoRelPath"
+            continue
+        }
+
+        # Extract clean SHA string, filtering out any ErrorRecord objects
+        $sha = @($hashOutput | Where-Object { $_ -is [string] -and $_ -match '^[0-9a-f]{40}' })[0]
+        if (-not $sha) {
+            Write-Warning "No valid SHA returned for $repoRelPath"
+            continue
+        }
+
+        if ($trackedPaths.Contains($repoRelPath)) {
+            $batchEntries.Add("120000 $sha`t$repoRelPath")
+        } else {
+            $newEntries.Add([PSCustomObject]@{ Sha = $sha; Path = $repoRelPath })
+        }
+        $fixedCount++
+        Write-Verbose "Queued index fix: $repoRelPath -> 120000"
+    }
+
+    # Add new/untracked files individually (typically few per run)
+    foreach ($entry in $newEntries) {
+        $cacheResult = git update-index --add --cacheinfo "120000,$($entry.Sha),$($entry.Path)" 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $errorMsg = @($cacheResult | ForEach-Object { $_.ToString() }) -join '; '
+            Write-Warning "Failed to add index entry for $($entry.Path): $errorMsg"
+            $fixedCount--
+        }
+    }
+
+    # Batch update existing entries in a single call to avoid index.lock contention
+    if ($batchEntries.Count -gt 0) {
+        $indexResult = $batchEntries | git update-index --index-info 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $errorMsg = @($indexResult | ForEach-Object { $_.ToString() }) -join '; '
+            Write-Warning "Failed to update git index: $errorMsg"
+            return 0
+        }
+    }
+
+    return $fixedCount
+}
+
 Export-ModuleMember -Function @(
     'Get-AllCollections',
     'Get-ArtifactFiles',
     'Get-ArtifactFrontmatter',
+    'Get-CollectionArtifactKey',
     'Get-CollectionManifest',
     'Get-PluginItemName',
     'Get-PluginSubdirectory',
@@ -978,9 +1348,14 @@ Export-ModuleMember -Function @(
     'New-MarketplaceManifestContent',
     'New-PluginManifestContent',
     'New-PluginReadmeContent',
-    'New-RelativeSymlink',
+    'New-PluginLink',
+    'Repair-PluginSymlinkIndex',
+    'Test-SymlinkCapability',
     'Resolve-CollectionItemMaturity',
     'Test-ArtifactDeprecated',
+    'Test-DeprecatedPath',
+    'Test-HveCoreRepoRelativePath',
+    'Test-HveCoreRepoSpecificPath',
     'Update-HveCoreAllCollection',
     'Write-MarketplaceManifest',
     'Write-PluginDirectory'

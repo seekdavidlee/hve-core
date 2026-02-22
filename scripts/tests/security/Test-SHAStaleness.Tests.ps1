@@ -14,6 +14,9 @@
 BeforeAll {
     $scriptPath = Join-Path $PSScriptRoot '../../security/Test-SHAStaleness.ps1'
     . $scriptPath
+    # Re-import CIHelpers so Pester can resolve its commands for mocking;
+    # the nested-module import inside SecurityHelpers shadows the standalone copy.
+    Import-Module (Join-Path $PSScriptRoot '../../lib/Modules/CIHelpers.psm1') -Force
 
     $mockPath = Join-Path $PSScriptRoot '../Mocks/GitMocks.psm1'
     Import-Module $mockPath -Force
@@ -129,26 +132,6 @@ Describe 'Invoke-GitHubAPIWithRetry' -Tag 'Unit' {
 
             $headers = @{ 'Authorization' = 'Bearer test' }
             { Invoke-GitHubAPIWithRetry -Uri 'https://api.github.com/graphql' -Method 'POST' -Headers $headers -Body '{}' } | Should -Throw
-        }
-    }
-}
-
-Describe 'Write-SecurityLog' -Tag 'Unit' {
-    Context 'Log output' {
-        It 'Does not throw for Info level' {
-            { Write-SecurityLog -Message 'Test message' -Level Info } | Should -Not -Throw
-        }
-
-        It 'Does not throw for Warning level' {
-            { Write-SecurityLog -Message 'Warning message' -Level Warning } | Should -Not -Throw
-        }
-
-        It 'Does not throw for Error level' {
-            { Write-SecurityLog -Message 'Error message' -Level Error } | Should -Not -Throw
-        }
-
-        It 'Does not throw for Success level' {
-            { Write-SecurityLog -Message 'Success message' -Level Success } | Should -Not -Throw
         }
     }
 }
@@ -873,52 +856,6 @@ jobs:
     }
 }
 
-Describe 'Write-OutputResult' -Tag 'Unit' {
-    Context 'JSON output format' {
-        It 'Creates output file with correct structure' {
-            $jsonPath = Join-Path $TestDrive 'output.json'
-            $deps = @(
-                @{ Type = 'GitHubAction'; Name = 'actions/checkout'; DaysOld = 45; Severity = 'Low' }
-            )
-
-            Write-OutputResult -Dependencies $deps -OutputFormat 'json' -OutputPath $jsonPath
-
-            Test-Path $jsonPath | Should -BeTrue
-            $content = Get-Content $jsonPath | ConvertFrom-Json
-            $content.TotalStaleItems | Should -Be 1
-        }
-    }
-
-    Context 'Console output format' {
-        It 'Writes formatted output via Write-SecurityLog' {
-            Mock Write-SecurityLog { }
-
-            $deps = @(
-                @{ Type = 'GitHubAction'; ActionRepo = 'actions/checkout'; DaysOld = 45; Severity = 'Low'; File = 'ci.yml' }
-            )
-
-            Write-OutputResult -Dependencies $deps -OutputFormat 'console'
-
-            Should -Invoke Write-SecurityLog -Times 1
-        }
-    }
-
-    Context 'Summary output format' {
-        It 'Groups dependencies by type' {
-            Mock Write-Output { }
-
-            $deps = @(
-                @{ Type = 'GitHubAction'; Name = 'actions/checkout'; DaysOld = 45; Severity = 'Low' }
-                @{ Type = 'Tool'; Name = 'node'; DaysOld = 90; Severity = 'High' }
-            )
-
-            Write-OutputResult -Dependencies $deps -OutputFormat 'Summary'
-
-            Should -Invoke Write-Output -Times 1
-        }
-    }
-}
-
 Describe 'Invoke-SHAStalenessCheck' -Tag 'Unit' {
     BeforeAll {
         Save-CIEnvironment
@@ -934,7 +871,7 @@ Describe 'Invoke-SHAStalenessCheck' -Tag 'Unit' {
 
             Mock Test-GitHubActionsForStaleness { return @() }
             Mock Get-ToolStaleness { }
-            Mock Write-OutputResult { }
+            Mock Write-SecurityOutput { }
             Mock New-Item { } -ParameterFilter { $ItemType -eq 'Directory' }
             Mock Write-SecurityLog { }
 
@@ -955,7 +892,7 @@ Describe 'Invoke-SHAStalenessCheck' -Tag 'Unit' {
                 )
             }
             Mock Get-ToolStaleness { }
-            Mock Write-OutputResult { }
+            Mock Write-SecurityOutput { }
 
             { Invoke-SHAStalenessCheck -OutputFormat 'console' -FailOnStale } |
                 Should -Throw '*Stale dependencies detected*'
@@ -969,7 +906,7 @@ Describe 'Invoke-SHAStalenessCheck' -Tag 'Unit' {
                 $script:StaleDependencies = @()
             }
             Mock Get-ToolStaleness { }
-            Mock Write-OutputResult { }
+            Mock Write-SecurityOutput { }
 
             { Invoke-SHAStalenessCheck -OutputFormat 'console' -FailOnStale } |
                 Should -Not -Throw
