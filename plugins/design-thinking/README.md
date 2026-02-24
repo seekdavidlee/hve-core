@@ -13,9 +13,10 @@ copilot plugin install design-thinking@hve-core
 
 ## Agents
 
-| Agent    | Description                                                                                                                                       |
-|----------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| dt-coach | Design Thinking coach guiding teams through the 9-method HVE framework with Think/Speak/Empower philosophy - Brought to you by microsoft/hve-core |
+| Agent             | Description                                                                                                                                       |
+|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| dt-coach          | Design Thinking coach guiding teams through the 9-method HVE framework with Think/Speak/Empower philosophy - Brought to you by microsoft/hve-core |
+| dt-learning-tutor | Design Thinking learning tutor providing structured curriculum, comprehension checks, and adaptive pacing - Brought to you by microsoft/hve-core  |
 
 ## Commands
 
@@ -48,6 +49,7 @@ copilot plugin install design-thinking@hve-core
 | dt-coaching-state                    | Coaching state schema for Design Thinking session persistence, method progress tracking, and session recovery                                                                                                                              |
 | dt-industry-healthcare               | Healthcare industry context for DT coaching — vocabulary, constraints, empathy tools, and reference scenarios                                                                                                                              |
 | dt-rpi-handoff-contract              | DT-to-RPI handoff contract defining exit points, artifact schemas, and per-agent input requirements for lateral transitions from Design Thinking to RPI workflow                                                                           |
+| dt-rpi-implement-context             | DT-aware task-implementor context: fidelity constraints, stakeholder validation, and iteration support                                                                                                                                     |
 | dt-rpi-planning-context              | DT-aware task-planner context: fidelity constraints, iteration support, and confidence-informed planning for DT artifacts                                                                                                                  |
 | dt-rpi-research-context              | DT-aware task-researcher context — frames research around DT methods, stakeholder needs, and empathy-driven inquiry                                                                                                                        |
 | dt-rpi-review-context                | DT-aware task-reviewer context: quality criteria for Design Thinking artifacts                                                                                                                                                             |
@@ -55,12 +57,14 @@ copilot plugin install design-thinking@hve-core
 | dt-method-01-scope                   | Method 1 Scope Conversations coaching knowledge for Design Thinking: frozen vs fluid assessment, stakeholder discovery, constraint patterns, and conversation navigation                                                                   |
 | dt-method-03-deep                    | Deep expertise for Method 3: Input Synthesis — advanced affinity analysis, insight frameworks, and problem statement articulation                                                                                                          |
 | dt-method-04-deep                    | Deep expertise for Method 4: Brainstorming — advanced facilitation techniques, creative block recovery, and convergence frameworks                                                                                                         |
+| dt-method-05-deep                    | Deep expertise for Method 5: User Concepts, covering advanced D/F/V analysis, image prompt crafting, concept stress-testing, and portfolio management                                                                                      |
 | dt-method-02-research                | Method 2 Design Research coaching knowledge: interview techniques, research planning, environmental observation, and insight extraction patterns                                                                                           |
 | dt-method-02-deep                    | Deep expertise for Method 2: Design Research, covering advanced interview techniques, ethnographic observation, and evidence triangulation                                                                                                 |
 | dt-method-03-synthesis               | Method 3 Input Synthesis coaching knowledge: pattern recognition, theme development, synthesis validation, and Problem-to-Solution Space transition readiness                                                                              |
 | dt-method-08-deep                    | Deep expertise for Method 8: Test and Validate — advanced test design, small-sample analysis, iteration triggers, and bias mitigation                                                                                                      |
 | dt-method-09-iteration               | Design Thinking Method 9: Iteration at Scale — systematic refinement, scaling patterns, and organizational deployment                                                                                                                      |
 | dt-method-09-deep                    | Deep expertise for Method 9: Iteration at Scale — change management, scaling, and adoption measurement                                                                                                                                     |
+| dt-method-06-deep                    | Deep expertise for Method 6: Low-Fidelity Prototypes; advanced paper prototyping, service blueprinting, and experience prototyping                                                                                                         |
 | dt-industry-manufacturing            | Manufacturing industry context for DT coaching — vocabulary, constraints, empathy tools, and reference scenarios                                                                                                                           |
 | dt-industry-energy                   | Energy industry context for DT coaching — vocabulary, constraints, empathy tools, and reference scenarios                                                                                                                                  |
 | dt-image-prompt-generation           | M365 Copilot image prompt generation techniques for Design Thinking Method 5 concept visualization with lo-fi enforcement                                                                                                                  |

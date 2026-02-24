@@ -12,6 +12,9 @@ items:
   - path: .github/agents/design-thinking/dt-coach.agent.md
     kind: agent
     maturity: experimental
+  - path: .github/agents/design-thinking/dt-learning-tutor.agent.md
+    kind: agent
+    maturity: experimental
 
   # Prompts
   - path: .github/prompts/design-thinking/dt-start-project.prompt.md
@@ -82,6 +85,9 @@ items:
   - path: .github/instructions/design-thinking/dt-rpi-handoff-contract.instructions.md
     kind: instruction
     maturity: experimental
+  - path: .github/instructions/design-thinking/dt-rpi-implement-context.instructions.md
+    kind: instruction
+    maturity: experimental
   - path: .github/instructions/design-thinking/dt-rpi-planning-context.instructions.md
     kind: instruction
     maturity: experimental
@@ -103,6 +109,9 @@ items:
   - path: .github/instructions/design-thinking/dt-method-04-deep.instructions.md
     kind: instruction
     maturity: experimental
+  - path: .github/instructions/design-thinking/dt-method-05-deep.instructions.md
+    kind: instruction
+    maturity: experimental
   - path: .github/instructions/design-thinking/dt-method-02-research.instructions.md
     kind: instruction
     maturity: experimental
@@ -119,6 +128,9 @@ items:
     kind: instruction
     maturity: experimental
   - path: .github/instructions/design-thinking/dt-method-09-deep.instructions.md
+    kind: instruction
+    maturity: experimental
+  - path: .github/instructions/design-thinking/dt-method-06-deep.instructions.md
     kind: instruction
     maturity: experimental
   - path: .github/instructions/design-thinking/dt-industry-manufacturing.instructions.md
