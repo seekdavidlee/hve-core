@@ -5,7 +5,7 @@ applyTo: '**/.copilot-tracking/dt/**'
 
 # DT Implementation Context
 
-When task-implementor operates on DT artifacts or executes a DT-originated plan, these adjustments augment standard implementation behavior. The plan originates from a Design Thinking process, so fidelity constraints, stakeholder validation, and iteration support shape implementation decisions.
+When task-implementor executes a plan that originated from a Design Thinking process, these adjustments augment standard implementation behavior. The Implementor does not receive direct DT handoffs; DT context arrives through the Researcher→Planner pipeline chain. The plan originates from a Design Thinking process, so fidelity constraints, stakeholder validation, and iteration support shape implementation decisions.
 
 ## Implementation Adjustments
 
@@ -44,3 +44,5 @@ Recommend returning to DT coaching rather than continuing implementation when an
 * The prototype or concept validated during DT coaching fails under implementation constraints, requiring a return to Solution Space methods for redesign.
 
 These adjustments complement co-loaded instruction files (`dt-rpi-handoff-contract`, `dt-quality-constraints`, `dt-method-sequencing`, `dt-rpi-planning-context`, `dt-rpi-review-context`): reference their content during implementation rather than duplicating it.
+
+* All DT coaching artifacts are scoped to `.copilot-tracking/dt/{project-slug}/`. Never write DT artifacts directly under `.copilot-tracking/dt/` without a project-slug directory.

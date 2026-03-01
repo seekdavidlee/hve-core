@@ -21,6 +21,7 @@ estimated_reading_time: 3
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/microsoft/hve-core/badge)](https://scorecard.dev/viewer/?uri=github.com/microsoft/hve-core)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/11795/badge)](https://www.bestpractices.dev/projects/11795)
 [![License](https://img.shields.io/github/license/microsoft/hve-core)](./LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-microsoft.github.io%2Fhve--core-blue)](https://microsoft.github.io/hve-core/)
 <!-- markdownlint-enable MD013 -->
 
 Hypervelocity Engineering (HVE) Core is an enterprise-ready prompt engineering framework for GitHub Copilot. Constraint-based AI workflows, validated artifacts, and structured methodologies that scale from solo developers to large teams.
@@ -58,14 +59,26 @@ The agent creates a memory file in your workspace. You now have a working HVE Co
 
 Ready to go deeper? Follow the [Getting Started Guide](docs/getting-started/README.md).
 
+## Documentation
+
+Full documentation is available at **<https://microsoft.github.io/hve-core/>**.
+
+| Guide                                                    | Description                                     |
+|----------------------------------------------------------|-------------------------------------------------|
+| [Getting Started](docs/getting-started/README.md)        | Setup and first workflow tutorial               |
+| [RPI Workflow](docs/rpi/README.md)                       | Deep dive into Research, Plan, Implement        |
+| [Contributing](docs/contributing/README.md)              | Create custom agents, instructions, and prompts |
+| [Agents Reference](.github/CUSTOM-AGENTS.md)             | All available agents                            |
+| [Instructions Reference](.github/instructions/README.md) | All coding instructions                         |
+
 ## What's Included
 
 | Component    | Count | Description                                                          | Documentation                                  |
 |--------------|-------|----------------------------------------------------------------------|------------------------------------------------|
-| Agents       | 18    | Specialized AI assistants for research, planning, and implementation | [Agents](.github/CUSTOM-AGENTS.md)             |
-| Instructions | 17+   | Repository-specific coding guidelines applied automatically          | [Instructions](.github/instructions/README.md) |
-| Prompts      | 18    | Reusable templates for common tasks like commits and PRs             | [Prompts](.github/prompts/README.md)           |
-| Skills       | 1     | Self-contained packages with cross-platform scripts and guidance     | [Skills](.github/skills/)                      |
+| Agents       | 35    | Specialized AI assistants for research, planning, and implementation | [Agents](.github/CUSTOM-AGENTS.md)             |
+| Instructions | 68    | Repository-specific coding guidelines applied automatically          | [Instructions](.github/instructions/README.md) |
+| Prompts      | 40    | Reusable templates for common tasks like commits and PRs             | [Prompts](.github/prompts/README.md)           |
+| Skills       | 2     | Self-contained packages with cross-platform scripts and guidance     | [Skills](.github/skills/)                      |
 | Scripts      | N/A   | Validation tools for linting, security, and quality                  | [Scripts](scripts/README.md)                   |
 
 ## Prompt Engineering Framework
@@ -124,8 +137,13 @@ docs/
 └── architecture/    # System design documentation
 extension/           # VS Code extension source
 scripts/
+├── collections/     # Collection validation and helper modules
+├── extension/       # Extension packaging and preparation
+├── lib/             # Shared utilities
 ├── linting/         # Markdown, frontmatter, YAML validation
-└── security/        # Dependency pinning and SHA checks
+├── plugins/         # Plugin generation
+├── security/        # Dependency pinning and SHA checks
+└── tests/           # Pester test suites
 ```
 
 ## Contributing
@@ -135,16 +153,6 @@ We appreciate contributions! Whether you're fixing typos or adding new component
 1. Read our [Contributing Guide](CONTRIBUTING.md)
 2. Check out [open issues](https://github.com/microsoft/hve-core/issues)
 3. Join the [discussion](https://github.com/microsoft/hve-core/discussions)
-
-## Documentation
-
-| Guide                                                    | Description                                     |
-|----------------------------------------------------------|-------------------------------------------------|
-| [Getting Started](docs/getting-started/README.md)        | Setup and first workflow tutorial               |
-| [RPI Workflow](docs/rpi/README.md)                       | Deep dive into Research, Plan, Implement        |
-| [Contributing](docs/contributing/README.md)              | Create custom agents, instructions, and prompts |
-| [Agents Reference](.github/CUSTOM-AGENTS.md)             | All available agents                            |
-| [Instructions Reference](.github/instructions/README.md) | All coding instructions                         |
 
 ## Responsible AI
 

@@ -1,6 +1,7 @@
 ---
 title: Task Implementor Guide
 description: Use the Task Implementor custom agent to execute implementation plans with precision and tracking
+sidebar_position: 6
 author: Microsoft
 ms.date: 2026-01-24
 ms.topic: tutorial
@@ -33,7 +34,7 @@ Use Task Implementor after completing planning when you need:
 6. **Pauses** at stop points for your review
 
 > [!NOTE]
-> **Why the constraint matters:** Task Implementor has one job: execute the plan using patterns documented in research. No time wasted rediscovering conventions, no "creative" decisions that break existing patterns—just verified facts applied methodically.
+> **Why the constraint matters:** Task Implementor has one job: execute the plan using patterns documented in research. No time wasted rediscovering conventions, no "creative" decisions that break existing patterns. Just verified facts applied methodically.
 
 ## Output Artifacts
 

@@ -1,6 +1,7 @@
 ---
 title: Copilot CLI Plugins
 description: Install HVE Core agents, prompts, and skills as Copilot CLI plugins
+sidebar_position: 2
 author: Microsoft
 ms.date: 2026-02-12
 ms.topic: how-to
@@ -11,8 +12,8 @@ AI-assisted development workflows.
 
 ## Prerequisites
 
-- GitHub Copilot CLI installed and authenticated
-- Git symlink support enabled (Windows: Developer Mode +
+* GitHub Copilot CLI installed and authenticated
+* Git symlink support enabled (Windows: Developer Mode +
   `git config --global core.symlinks true`)
 
 ## Register hve-core as a Plugin Marketplace
@@ -52,21 +53,23 @@ copilot plugin install hve-core-all@hve-core
 
 Each plugin includes:
 
-- **Agents** — Custom chat agents for specialized workflows
-- **Commands** — Task prompts accessible via the CLI
-- **Instructions** — Coding standards and conventions
-- **Skills** — Self-contained skill packages (hve-core-all only)
+| Component    | Description                                       |
+|--------------|---------------------------------------------------|
+| Agents       | Custom chat agents for specialized workflows      |
+| Commands     | Task prompts accessible via the CLI               |
+| Instructions | Coding standards and conventions                  |
+| Skills       | Self-contained skill packages (hve-core-all only) |
 
 Artifacts are symlinked from the plugin directory to the source repository,
 enabling zero-copy installation.
 
 ## Limitations
 
-- Instructions are included but may not be natively consumed by the CLI
+* Instructions are included but may not be natively consumed by the CLI
   plugin system
-- The `copilot plugin` commands are not yet in official GitHub Copilot
+* The `copilot plugin` commands are not yet in official GitHub Copilot
   documentation
-- Skills require skill-compatible agent environments
+* Skills require skill-compatible agent environments
 
 ---
 

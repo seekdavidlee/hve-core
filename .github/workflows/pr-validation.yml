@@ -78,6 +78,14 @@ jobs:
       changed-files-only: false
       code-coverage: true
 
+  docusaurus-tests:
+    name: Docusaurus Tests
+    uses: ./.github/workflows/docusaurus-tests.yml
+    permissions:
+      contents: read
+    with:
+      soft-fail: false
+
   frontmatter-validation:
     name: Frontmatter Validation
     uses: ./.github/workflows/frontmatter-validation.yml
@@ -128,7 +136,18 @@ jobs:
     uses: ./.github/workflows/dependency-pinning-scan.yml
     permissions:
       contents: read
-      security-events: write
+      security-events: write  # Required for SARIF upload to Security tab
+    with:
+      soft-fail: false
+      upload-sarif: true
+      upload-artifact: false
+
+  workflow-permissions-check:
+    name: Workflow Permissions Check
+    uses: ./.github/workflows/workflow-permissions-scan.yml
+    permissions:
+      contents: read
+      security-events: write  # Required for SARIF upload to Security tab
     with:
       soft-fail: false
       upload-sarif: true
@@ -139,7 +158,7 @@ jobs:
     uses: ./.github/workflows/gitleaks-scan.yml
     permissions:
       contents: read
-      security-events: write
+      security-events: write  # Required for SARIF upload to Security tab
     with:
       soft-fail: false
       upload-sarif: true
@@ -174,5 +193,5 @@ jobs:
     uses: ./.github/workflows/codeql-analysis.yml
     permissions:
       contents: read
-      security-events: write
+      security-events: write  # Required for SARIF upload to Security tab
       actions: read

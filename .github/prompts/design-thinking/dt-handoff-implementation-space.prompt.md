@@ -1,8 +1,8 @@
 ---
-description: 'Compiles DT Methods 7-9 outputs into RPI-ready handoff artifact with tiered routing'
+description: 'Compiles DT Methods 7-9 outputs into RPI-ready handoff artifact targeting task-researcher'
 agent: 'agent'
 tools: ['read_file', 'create_file', 'replace_string_in_file']
-argument-hint: "projectName=..."
+argument-hint: "project-slug=..."
 ---
 
 # Implementation Space Exit Handoff
@@ -13,13 +13,17 @@ This is the final DT exit point: the richest handoff carrying cumulative artifac
 
 ## Inputs
 
-* ${input:projectName}: (Required) Name of the DT project. Derives the project slug (kebab-case) for directory lookup under `.copilot-tracking/dt/`.
+* ${input:project-slug}: (Required) Kebab-case project identifier for the artifact directory (e.g., `factory-floor-maintenance`).
+
+## Requirements
+
+* All DT coaching artifacts are scoped to `.copilot-tracking/dt/{project-slug}/`. Never write DT artifacts directly under `.copilot-tracking/dt/` without a project-slug directory.
 
 ## Required Steps
 
 ### Step 1: Read Coaching State
 
-1. Derive the project slug from `${input:projectName}` using kebab-case conversion: convert to lowercase, replace spaces and non-alphanumeric characters with hyphens, and collapse consecutive hyphens.
+1. Use `${input:project-slug}` as the project directory identifier.
 2. Read the coaching state file at `.copilot-tracking/dt/{project-slug}/coaching-state.md`. If the file does not exist, report the missing file path and ask the user to verify the project name before proceeding.
 3. Check `methods_completed` to determine the exit tier:
    * Method 7 only → tier 1 (guided).
@@ -97,10 +101,7 @@ Tag each readiness signal with a quality marker:
 | `unknown`     | Identified gap not yet investigated                      |
 | `conflicting` | Multiple sources disagree                                |
 
-Routing decision:
-
-* Route to task-implementor when the prototype is near production-ready, the deployment plan is comprehensive, testing evidence is thorough, and architecture decisions are documented.
-* Route to task-planner when significant production architecture gaps remain, the scaling assessment reveals large unresolved needs, or the exit tier is tier 1 (guided).
+Readiness note: all Implementation Space exits hand off to Task Researcher regardless of tier or prototype maturity. The exit tier and readiness assessment provide context that shapes the Researcher's investigation scope. Higher tiers with more validated evidence typically narrow the research needed.
 
 If critical gaps exist (signals marked `unknown` or `conflicting`), present findings and ask whether to proceed with the handoff or return to address gaps first. If no user response is available, default to proceeding with the handoff and documenting gaps in the Investigation Targets section.
 
@@ -114,7 +115,7 @@ Include the YAML header. The `tier` field extends the base DT-RPI handoff contra
 exit_point: "implementation-spec-ready"
 dt_method: 9          # or 7/8 based on tier
 dt_space: "implementation"
-handoff_target: "implementor"  # or "planner" based on routing decision
+handoff_target: "researcher"
 date: "{today's date}"
 tier: "comprehensive"  # guided | structured | comprehensive
 ```
@@ -130,17 +131,17 @@ Record a lateral transition in the coaching state `transition_log`:
 ```yaml
 - type: lateral
   from_method: 9      # or 7/8 based on tier
-  to: "implementor"  # or "planner"
-  rationale: "Implementation Space complete: handoff to RPI pipeline"
+  to: "rpi-researcher"
+  rationale: "Implementation Space complete: handoff to RPI Researcher with validated implementation artifacts"
   date: "{today's date}"
   tier: "comprehensive"   # guided | structured | comprehensive
 ```
 
 ### Step 5: Generate RPI Entry
 
-Create a self-contained RPI handoff document at `.copilot-tracking/dt/{project-slug}/rpi-handoff-implementation-space.md` for the target RPI agent to consume directly.
+Create a self-contained RPI handoff document at `.copilot-tracking/research/{project-slug}-research-topic.md` for task-researcher to consume directly.
 
-Include YAML frontmatter with `description` set to a summary of the handoff context (for example, `description: 'RPI handoff from DT Implementation Space for {project name}'`).
+Include YAML frontmatter with `description` set to a summary of the handoff context (for example, `description: 'RPI research topic from DT Implementation Space for {project name}'`).
 
 Content sanitization: apply these rules before generating.
 
@@ -152,40 +153,32 @@ Content sanitization: apply these rules before generating.
 
 Structure the document with these sections:
 
-#### Implementation Summary
+#### Research Topic
 
-Validated prototype description, architecture decisions, and key technical trade-offs from high-fidelity prototype validation.
+Frame the implementation artifacts as a research question. State the validated prototype, architecture decisions, and what the Researcher should investigate further (production readiness, scaling gaps, integration concerns).
 
-#### Testing Evidence (Tier 2+)
+#### Validated Implementation Evidence
 
-User testing results, behavioral observations, severity-frequency findings, and iteration decisions from user testing.
+Architecture decisions, technical trade-offs, and prototype validation results from high-fidelity prototype validation. Testing observations and severity-frequency findings from user testing. Scaling assessment and deployment readiness from iteration at scale (tier 3 only).
 
-#### Deployment Readiness (Tier 3)
+#### Problem and Solution Space Lineage
 
-Scaling assessment, deployment plan, rollout strategy, business value metrics, and adoption indicators from iteration and scaling assessment.
+Validated problem statement, stakeholder map, synthesis themes from Problem Space. Tested concepts, constraint discoveries, narrowed directions from Solution Space. Include from prior handoff artifacts or compiled from coaching state.
 
-#### Problem Space Foundation (Lineage)
+#### Known Constraints
 
-Validated problem statement, stakeholder map, and synthesis themes from Methods 1-3.
+Validated and assumed constraints with sources, organized by type.
 
-#### Solution Space Refinement (Lineage)
+#### Investigation Priorities
 
-Tested concepts, constraint discoveries, and narrowed directions from Methods 4-6.
+Items tagged `assumed`, `unknown`, or `conflicting` requiring Researcher investigation. Group by priority (blockers first, then high-impact, then lower-impact).
 
-#### Constraints
+#### DT Artifact Paths
 
-Validated and assumed constraints with sources.
+List all `.copilot-tracking/dt/{project-slug}/` artifact paths so the Researcher can read original DT evidence directly.
 
-#### Investigation Targets
-
-Items tagged `assumed`, `unknown`, or `conflicting` requiring further work.
-
-#### Routing Rationale
-
-Why task-implementor or task-planner was selected, with gap analysis summary.
-
-Inline all content directly rather than referencing `.copilot-tracking/` paths.
-The document stands alone as complete context for the receiving RPI agent.
+Inline all content directly rather than referencing `.copilot-tracking/` paths (except in the DT Artifact Paths section).
+The document stands alone as complete context for the receiving task-researcher.
 
 ### Step 6: Completion Ceremony
 
@@ -202,4 +195,4 @@ Present the completion ceremony as a conversational summary to the user covering
 
 ---
 
-Execute the Implementation Space exit handoff for project "${input:projectName}" by following the Required Steps.
+Execute the Implementation Space exit handoff for project "${input:project-slug}" by following the Required Steps.
